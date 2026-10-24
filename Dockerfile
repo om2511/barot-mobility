@@ -1,24 +1,28 @@
-FROM node:20-alpine AS build
+# Stage 1: Build Frontend
+FROM node:20-alpine AS client-builder
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm install
+COPY client ./
+RUN npm run build
 
+# Stage 2: Production Server
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install client and build
-COPY client/package*.json ./client/
-RUN cd client && npm install
+# Install server dependencies
+COPY server/package*.json ./server/
+RUN cd server && npm install --production
 
-COPY client ./client
-RUN cd client && npm run build
+# Copy server source code
+COPY server ./server
 
-# Setup Server
+# Copy built frontend from Stage 1
+COPY --from=client-builder /app/client/dist ./client/dist
+
 WORKDIR /app/server
-COPY server/package*.json ./
-RUN npm install --production
-
-COPY server ./
-COPY --from=build /app/client/dist /app/client/dist
 
 EXPOSE 5000
-
 ENV PORT=5000
 ENV NODE_ENV=production
 
