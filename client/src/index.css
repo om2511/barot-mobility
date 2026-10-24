@@ -241,6 +241,10 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+table th {
+  white-space: nowrap;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }

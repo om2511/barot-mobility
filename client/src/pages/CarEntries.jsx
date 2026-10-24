@@ -367,15 +367,13 @@ export default function CarEntries({ entries, cars, drivers, onAddEntry, onUpdat
 
                 <div className="form-group">
                   <label className="form-label">વિગત / કારણ</label>
-                  <select 
+                  <input
+                    type="text"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="form-select"
-                  >
-                    {categoriesByType[formData.type]?.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                    placeholder="વિગત અથવા કારણ લખો"
+                    className="form-input"
+                  />
                 </div>
               </div>
 
@@ -395,13 +393,16 @@ export default function CarEntries({ entries, cars, drivers, onAddEntry, onUpdat
 
                 <div className="form-group">
                   <label className="form-label">હાજર ડ્રાઇવરનું નામ</label>
-                  <input 
-                    type="text"
+                  <select
                     value={formData.driverName}
                     onChange={(e) => setFormData({ ...formData, driverName: e.target.value })}
-                    placeholder="ડ્રાઇવરનું નામ"
-                    className="form-input"
-                  />
+                    className="form-select"
+                  >
+                    <option value="હર્ષ બારોટ">હર્ષ બારોટ</option>
+                    {drivers.map((driver) => (
+                      <option key={driver.id} value={driver.name}>{driver.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

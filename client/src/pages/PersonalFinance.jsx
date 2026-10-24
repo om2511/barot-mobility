@@ -18,39 +18,18 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    type: 'ઘર ખર્ચ',
+    type: 'ખર્ચ',
     category: 'ઘર કરિયાણું અને રાશન',
     amount: '',
     account: 'રોકડ (Cash)',
     description: ''
   });
 
-  const categories = {
-    'અંગત આવક': [
-      'ટેક્સી બિઝનેસ નફો ઉપાડ્યો',
-      'દુકાન / મકાનનું ભાડું મળ્યું',
-      'વ્યાજ / રોકાણની આવક',
-      'અન્ય અંગત આવક'
-    ],
-    'ઘર ખર્ચ': [
-      'ઘર કરિયાણું અને રાશન',
-      'ઘર ભાડું / સોસાયટી મેન્ટેનન્સ',
-      'બાળકોની સ્કૂલ / ટ્યુશન ફી',
-      'લાઈટબિલ / ગેસ સિલિન્ડર બિલ',
-      'SIP / મ્યુચ્યુઅલ ફંડ બચત',
-      'દવા અને હોસ્પિટલ ખર્ચ',
-      'કપડાં અને ખરીદી',
-      'ગાડીનો પર્સનલ હપ્તો (EMI)',
-      'સામાજિક પ્રસંગ / વ્યવહાર ખર્ચ',
-      'પરચૂરણ ઘર ખર્ચ'
-    ]
-  };
-
   const openAddModal = () => {
     setEditingItem(null);
     setFormData({
       date: new Date().toISOString().split('T')[0],
-      type: 'ઘર ખર્ચ',
+      type: 'ખર્ચ',
       category: 'ઘર કરિયાણું અને રાશન',
       amount: '',
       account: 'રોકડ (Cash)',
@@ -66,18 +45,10 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
       type: item.type,
       category: item.category,
       amount: item.amount,
-      account: item.account || 'રોકડ (Cash)',
+      account: item.account === 'રોકડ (Cash)' ? item.account : item.account ? 'Online' : 'રોકડ (Cash)',
       description: item.description || ''
     });
     setIsModalOpen(true);
-  };
-
-  const handleTypeChange = (t) => {
-    setFormData(prev => ({
-      ...prev,
-      type: t,
-      category: categories[t][0]
-    }));
   };
 
   const handleSubmit = (e) => {
@@ -100,13 +71,15 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
     setIsModalOpen(false);
   };
 
-  const totalIncome = personalFinance.filter(p => p.type === 'અંગત આવક').reduce((s, p) => s + p.amount, 0);
-  const totalExpense = personalFinance.filter(p => p.type === 'ઘર ખર્ચ').reduce((s, p) => s + p.amount, 0);
+  const isIncomeType = (type) => type === 'આવક' || type === 'અંગત આવક';
+  const isExpenseType = (type) => type === 'ખર્ચ' || type === 'ઘર ખર્ચ';
+  const totalIncome = personalFinance.filter(p => isIncomeType(p.type)).reduce((s, p) => s + p.amount, 0);
+  const totalExpense = personalFinance.filter(p => isExpenseType(p.type)).reduce((s, p) => s + p.amount, 0);
   const netSavings = totalIncome - totalExpense;
 
   const filteredPF = personalFinance.filter(p => {
     if (filterType === 'ALL') return true;
-    return p.type === filterType;
+    return filterType === 'આવક' ? isIncomeType(p.type) : isExpenseType(p.type);
   });
 
   return (
@@ -190,7 +163,7 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
 
       {/* Filter Tabs */}
       <div className="glass-panel" style={{ padding: '14px 20px', display: 'flex', gap: '10px' }}>
-        {['ALL', 'અંગત આવક', 'ઘર ખર્ચ'].map((t) => (
+        {['ALL', 'આવક', 'ખર્ચ'].map((t) => (
           <button
             key={t}
             onClick={() => setFilterType(t)}
@@ -205,7 +178,7 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
               fontSize: '0.85rem'
             }}
           >
-            {t === 'ALL' ? 'બધો વ્યવહાર' : t === 'અંગત આવક' ? 'અંગત આવક' : 'ઘર ખર્ચ'}
+            {t === 'ALL' ? 'બધો વ્યવહાર' : t}
           </button>
         ))}
       </div>
@@ -234,7 +207,7 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
                 </tr>
               ) : (
                 filteredPF.map((item) => {
-                  const isInc = item.type === 'અંગત આવક';
+                  const isInc = isIncomeType(item.type);
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                       <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>{item.date}</td>
@@ -295,14 +268,14 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div className="form-group">
                   <label className="form-label">પ્રકાર</label>
-                  <select 
+                  <input
+                    type="text"
                     value={formData.type}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="ઘર ખર્ચ">ઘર ખર્ચ (પરિવાર / ઘર)</option>
-                    <option value="અંગત આવક">અંગત આવક (બિઝનેસ નફો ઉપાડ / અન્ય)</option>
-                  </select>
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    placeholder="આવક અથવા ખર્ચ લખો"
+                    className="form-input"
+                    required
+                  />
                 </div>
 
                 <div className="form-group">
@@ -320,15 +293,13 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div className="form-group">
                   <label className="form-label">વિગત / કારણ</label>
-                  <select 
+                  <input
+                    type="text"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="form-select"
-                  >
-                    {categories[formData.type]?.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                    placeholder="વિગત અથવા કારણ લખો"
+                    className="form-input"
+                  />
                 </div>
 
                 <div className="form-group">
@@ -353,10 +324,7 @@ export default function PersonalFinance({ personalFinance, onAddPersonal, onUpda
                   className="form-select"
                 >
                   <option value="રોકડ (Cash)">રોકડ (Cash)</option>
-                  <option value="Google Pay / PhonePe / UPI">Google Pay / PhonePe / UPI</option>
-                  <option value="SBI બેંક ખાતું">SBI પર્સનલ બેંક ખાતું</option>
-                  <option value="HDFC બેંક ખાતું">HDFC બેંક ખાતું</option>
-                  <option value="ક્રેડિટ કાર્ડ">ક્રેડિટ કાર્ડ</option>
+                  <option value="Online">Online</option>
                 </select>
               </div>
 

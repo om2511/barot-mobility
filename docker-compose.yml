@@ -4,10 +4,11 @@ services:
     container_name: barot_mobility_app
     restart: always
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     environment:
       - PORT=5000
       - NODE_ENV=production
-      - JWT_SECRET=barot_mobility_production_secret_key_2026
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in the deployment environment}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD for a new data directory}
     volumes:
       - ./server/data:/app/server/data

@@ -7,9 +7,14 @@ const { readData, writeData } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'harsh_barot_mobility_kalol_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
-app.use(cors());
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be configured with at least 32 characters');
+}
+
+app.use(cors({ origin: CLIENT_ORIGIN }));
 app.use(express.json());
 
 // Serve Static Frontend Assets
@@ -19,8 +24,12 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 function ensureAdmin() {
   let users = readData('users');
   if (users.length === 0) {
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    if (!initialPassword || initialPassword.length < 8) {
+      throw new Error('ADMIN_INITIAL_PASSWORD must be configured with at least 8 characters when creating the first admin');
+    }
     const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync('harsh123', salt);
+    const hash = bcrypt.hashSync(initialPassword, salt);
     const defaultAdmin = {
       id: 'admin-1',
       username: 'harsh',
@@ -34,6 +43,8 @@ function ensureAdmin() {
     };
     users = [defaultAdmin];
     writeData('users', users);
+  } else if (!users.every(user => typeof user.passwordHash === 'string' && /^\$2[aby]\$\d{2}\$/.test(user.passwordHash))) {
+    throw new Error('An existing administrator has an invalid password hash; reset it through a controlled migration before starting the server');
   }
 }
 ensureAdmin();
@@ -70,7 +81,7 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'અમાન્ય યુઝરનેમ અથવા પાસવર્ડ' });
   }
 
-  const isMatch = bcrypt.compareSync(password, user.passwordHash) || password === 'harsh123';
+  const isMatch = bcrypt.compareSync(password, user.passwordHash);
   if (!isMatch) {
     return res.status(401).json({ error: 'અમાન્ય યુઝરનેમ અથવા પાસવર્ડ' });
   }
@@ -125,12 +136,12 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
     if (!currentPassword) {
       return res.status(400).json({ error: 'નવો પાસવર્ડ સેટ કરવા માટે હાલનો જૂનો પાસવર્ડ લખો' });
     }
-    const isCurrentValid = bcrypt.compareSync(currentPassword, users[index].passwordHash) || currentPassword === 'harsh123';
+    const isCurrentValid = bcrypt.compareSync(currentPassword, users[index].passwordHash);
     if (!isCurrentValid) {
       return res.status(400).json({ error: 'હાલનો જૂનો પાસવર્ડ ખોટો છે' });
     }
-    if (newPassword.length < 4) {
-      return res.status(400).json({ error: 'નવો પાસવર્ડ ઓછામાં ઓછો ૪ અક્ષરનો હોવો જોઈએ' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'નવો પાસવર્ડ ઓછામાં ઓછો ૮ અક્ષરનો હોવો જોઈએ' });
     }
     const salt = bcrypt.genSaltSync(10);
     users[index].passwordHash = bcrypt.hashSync(newPassword, salt);
@@ -387,7 +398,7 @@ app.post('/api/personal-finance', authMiddleware, (req, res) => {
   const newPF = {
     id: 'pf-' + Date.now(),
     date: req.body.date || new Date().toISOString().split('T')[0],
-    type: req.body.type || 'ઘર ખર્ચ',
+    type: req.body.type || 'ખર્ચ',
     category: req.body.category || 'સામાન્ય',
     amount: Number(req.body.amount) || 0,
     account: req.body.account || 'રોકડ (Cash)',
@@ -478,8 +489,12 @@ app.get('/api/analytics/business-summary', authMiddleware, (req, res) => {
   const netBusinessProfit = monthIncome - totalFleetExpense;
 
   const monthPF = pf.filter(p => p.date && p.date.startsWith(currentMonth));
-  const personalIncome = monthPF.filter(p => p.type === 'અંગત આવક').reduce((s, p) => s + p.amount, 0);
-  const personalExpense = monthPF.filter(p => p.type === 'ઘર ખર્ચ').reduce((s, p) => s + p.amount, 0);
+  const personalIncome = monthPF
+    .filter(p => p.type === 'આવક' || p.type === 'અંગત આવક')
+    .reduce((s, p) => s + p.amount, 0);
+  const personalExpense = monthPF
+    .filter(p => p.type === 'ખર્ચ' || p.type === 'ઘર खर्च')
+    .reduce((s, p) => s + p.amount, 0);
   const personalSavings = personalIncome - personalExpense;
 
   res.json({

@@ -88,7 +88,7 @@ export default function Dashboard({ summary, cars, entries, setActiveTab, onAddE
               fontSize: '0.78rem',
               fontWeight: 700
             }}>
-              <Sparkles size={13} /> કલોલ ટેક્સી સંચાલન
+              <Sparkles size={13} /> ટેક્સી સંચાલન
             </span>
             <span style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Calendar size={13} /> ચાલુ મહિનો: {getMonthNameGujarati(summary.currentMonth)}
