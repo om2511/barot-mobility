@@ -245,6 +245,33 @@ table th {
   white-space: nowrap;
 }
 
+.admin-profile-hero-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-profile-hero-content h2 {
+  overflow-wrap: anywhere;
+}
+
+.admin-profile-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 0.86rem;
+}
+
+.admin-profile-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }
@@ -289,6 +316,24 @@ table th {
   h1 { font-size: 1.35rem !important; }
   h2 { font-size: 1.25rem !important; }
   h3 { font-size: 1.05rem !important; }
+
+  .admin-profile-hero {
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 18px 14px !important;
+  }
+
+  .admin-profile-hero-content > div:first-child {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+
+  .admin-profile-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
   
   /* Stack 2-column modal inputs vertically on mobile */
   .modal-content div[style*="gridTemplateColumns"] {

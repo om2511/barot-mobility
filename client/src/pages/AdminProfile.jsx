@@ -75,7 +75,7 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '850px', margin: '0 auto' }}>
       
       {/* Header */}
-      <div className="glass-panel" style={{
+      <div className="glass-panel admin-profile-hero" style={{
         padding: '28px',
         display: 'flex',
         alignItems: 'center',
@@ -86,6 +86,7 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
         <div style={{
           width: '72px',
           height: '72px',
+          flexShrink: 0,
           borderRadius: '50%',
           background: 'linear-gradient(135deg, #f59e0b, #0ea5e9)',
           display: 'flex',
@@ -99,7 +100,7 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
           HB
         </div>
 
-        <div>
+        <div className="admin-profile-hero-content">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="badge badge-active">
               <ShieldCheck size={13} /> મુખ્ય એડમિન પ્રોફાઇલ
@@ -109,11 +110,11 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
           <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#fff', marginTop: '6px' }}>
             {user?.fullName || 'હર્ષ બારોટ'}
           </h2>
-          <div style={{ fontSize: '0.86rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="admin-profile-meta">
+            <span>
               <Building2 size={14} color="#f59e0b" /> {user?.businessName || 'બારોટ મોબિલિટી'}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>
               <MapPin size={14} color="#10b981" /> {user?.city || 'કલોલ, ગાંધીનગર'}
             </span>
           </div>
