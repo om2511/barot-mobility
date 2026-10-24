@@ -132,5 +132,5 @@ The resource endpoints support the CRUD operations exposed by the UI.
 
 - The server creates missing JSON data files in `server/data` at startup.
 - `server/data` is excluded from future source-control changes; treat it as private application data. If data files were previously committed, remove them from repository history using your approved credential/data-retention process.
-- `render.yaml` describes a Node web service deployment and generates `JWT_SECRET`.
+- `render.yaml` describes a Node web service deployment and generates `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD`. If the Render service was created manually, add or rotate these variables in the service's Environment settings because an existing service may not automatically import later Blueprint changes.
 - `docker-compose.yml` binds port `5000` to localhost only and requires `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD` from the deployment environment. Put the service behind an HTTPS reverse proxy before remote access.
