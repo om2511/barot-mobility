@@ -131,8 +131,8 @@ The resource endpoints support the CRUD operations exposed by the UI.
 
 ## Data and deployment notes
 
-- The server creates missing JSON data files in `server/data` at startup.
-- `server/data` is excluded from future source-control changes; treat it as private application data. If data files were previously committed, remove them from repository history using your approved credential/data-retention process.
+- The server creates missing JSON data files in `server/data` at startup. When no users exist, it creates the `harsh` administrator from `ADMIN_INITIAL_PASSWORD`.
+- `server/data` is private runtime data and is excluded from source control. Existing deployments must use persistent storage if business data must survive redeploys; on a new empty deployment, set `ADMIN_INITIAL_PASSWORD` before the first start.
 - `render.yaml` describes a Node web service deployment and generates `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD`. If the Render service was created manually, add or rotate these variables in the service's Environment settings because an existing service may not automatically import later Blueprint changes.
 - To recover access without Render Shell, add `ADMIN_PASSWORD_RESET_TOKEN` in Render Environment, open `પાસવર્ડ ભૂલી ગયા છો?` on the login screen, reset the password, then remove or rotate the token and redeploy.
 - `docker-compose.yml` binds port `5000` to localhost only and requires `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD` from the deployment environment. Put the service behind an HTTPS reverse proxy before remote access.

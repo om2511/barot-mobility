@@ -8,17 +8,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 // Clean initial empty database (No mock data)
 const initialData = {
-  users: [
-    {
-      id: 'admin-1',
-      username: 'harsh',
-      fullName: 'હર્ષ બારોટ (Harsh Barot)',
-      passwordHash: '$2a$10$wT3oX99VdZ0hH19m9sO1fe5Q51XqMvW14l524.3G1wM4lM3lM3lM2', // default hashed or will handle plaintext fallback
-      phone: '9825000000',
-      role: 'admin',
-      city: 'કલોલ, ગાંધીનગર'
-    }
-  ],
+  users: [],
   cars: [],
   drivers: [],
   carEntries: [],
