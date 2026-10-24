@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Receipt, 
-  Car, 
-  Users, 
-  Banknote, 
-  Wallet, 
-  UserCircle, 
-  HelpCircle, 
-  LogOut, 
-  MapPin, 
-  ShieldCheck, 
-  Menu, 
-  X 
+import {
+  LayoutDashboard,
+  BarChart3,
+  Receipt,
+  Car,
+  Users,
+  Banknote,
+  Wallet,
+  UserCircle,
+  HelpCircle,
+  LogOut,
+  MapPin,
+  ShieldCheck,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
@@ -39,7 +39,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
   return (
     <>
       {/* Mobile Top Header Bar (Only visible on screens <= 900px) */}
-      {!mobileOpen && (<header className="mobile-header">
+      <header className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src="/logo.svg" alt="Barot Mobility" style={{ width: '34px', height: '34px' }} />
           <div>
@@ -51,8 +51,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
             </div>
           </div>
         </div>
-
-        <button 
+        <button
           onClick={() => setMobileOpen(!mobileOpen)}
           style={{
             background: 'rgba(255, 255, 255, 0.08)',
@@ -74,15 +73,11 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
 
       {/* Mobile Backdrop Overlay */}
       {mobileOpen && (
-        <div 
-          onClick={() => setMobileOpen(false)}
-          className="mobile-backdrop"
-        />
+        <div onClick={() => setMobileOpen(false)} className="mobile-backdrop" />
       )}
 
       {/* Main Sidebar Navigation Drawer */}
       <aside className={`app-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-        
         {/* Desktop Brand Header (Hidden on Mobile to prevent double logo/name) */}
         <div className="desktop-brand-header">
           <div style={{
@@ -106,7 +101,6 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
               <img src="/logo.svg" alt="Barot Mobility" style={{ width: '36px', height: '36px' }} />
             </div>
           </div>
-
           <div>
             <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '0.5px' }}>
               BAROT <span style={{ color: '#fbbf24' }}>MOBILITY</span>
@@ -122,7 +116,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>
             મેનુ નેવિગેશન
           </span>
-          <button 
+          <button
             onClick={() => setMobileOpen(false)}
             style={{
               background: 'rgba(255, 255, 255, 0.08)',
@@ -141,7 +135,6 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
 
         {/* Navigation Menu Links */}
         <div style={{ padding: '12px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
-          
           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', padding: '6px 12px' }}>
             ફ્લીટ મેનેજમેન્ટ
           </div>
@@ -307,7 +300,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
           background: 'rgba(5, 8, 17, 0.95)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div 
+            <div
               onClick={() => handleItemClick('profile')}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             >
@@ -334,7 +327,6 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                 </div>
               </div>
             </div>
-
             <button
               onClick={onLogout}
               title="લોગઆઉટ કરો"
@@ -357,87 +349,17 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
       </aside>
 
       <style>{`
-        .mobile-header {
-          display: none;
-        }
-        .desktop-brand-header {
-          padding: 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .mobile-drawer-header {
-          display: none;
-        }
-
-        .app-sidebar {
-          width: 280px;
-          min-width: 280px;
-          height: 100vh;
-          position: sticky;
-          top: 0;
-          background: rgba(7, 12, 24, 0.98);
-          backdrop-filter: blur(16px);
-          border-right: 1px solid rgba(255, 255, 255, 0.08);
-          display: flex;
-          flex-direction: column;
-          z-index: 1450;
-        }
-
+        .mobile-header { display: none; }
+        .desktop-brand-header { padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; gap: 12px; }
+        .mobile-drawer-header { display: none; }
+        .app-sidebar { width: 280px; min-width: 280px; height: 100vh; position: sticky; top: 0; background: rgba(7, 12, 24, 0.98); backdrop-filter: blur(16px); border-right: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; z-index: 1450; }
         @media (max-width: 900px) {
-          .mobile-header {
-            display: flex !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: rgba(7, 12, 24, 0.98);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            z-index: 1500;
-          }
-          
-          /* Hide desktop brand logo from sidebar in mobile so it doesn't double */
-          .desktop-brand-header {
-            display: none !important;
-          }
-
-          /* Show clean title & close button inside mobile drawer */
-          .mobile-drawer-header {
-            display: flex !important;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 18px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          }
-
-          .mobile-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
-            z-index: 1400;
-          }
-
-          .app-sidebar {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            bottom: 0 !important;
-            height: 100vh !important;
-            transform: translateX(-100%);
-            transition: transform 0.28s ease-in-out;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.85);
-            z-index: 1600 !important;
-          }
-
-          .app-sidebar.mobile-open {
-            transform: translateX(0) !important;
-          }
+          .mobile-header { display: flex !important; position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(7, 12, 24, 0.98); border-bottom: 1px solid rgba(255, 255, 255, 0.1); align-items: center; justify-content: space-between; padding: 0 16px; z-index: 1500; }
+          .desktop-brand-header { display: none !important; }
+          .mobile-drawer-header { display: flex !important; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+          .mobile-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 1400; }
+          .app-sidebar { position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important; height: 100vh !important; transform: translateX(-100%); transition: transform 0.28s ease-in-out; box-shadow: 10px 0 30px rgba(0,0,0,0.85); z-index: 1600 !important; }
+          .app-sidebar.mobile-open { transform: translateX(0) !important; }
         }
       `}</style>
     </>
