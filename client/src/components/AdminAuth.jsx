@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Lock, MapPin, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function AdminAuth({ onLoginSuccess }) {
+  const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -13,15 +16,28 @@ export default function AdminAuth({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const isReset = mode === 'reset';
+      const res = await fetch(isReset ? '/api/auth/forgot-password' : '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify(isReset
+          ? { username, resetToken, newPassword }
+          : { username, password })
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'ખોટો યુઝરનેમ અથવા પાસવર્ડ');
+        setError(data.error || (isReset ? 'પાસવર્ડ રીસેટ થઈ શક્યો નથી' : 'ખોટો યુઝરનેમ અથવા પાસવર્ડ'));
+        setLoading(false);
+        return;
+      }
+
+      if (isReset) {
+        setMode('login');
+        setPassword('');
+        setNewPassword('');
+        setResetToken('');
+        setError('પાસવર્ડ બદલાઈ ગયો છે. હવે નવા પાસવર્ડથી લોગીન કરો.');
         setLoading(false);
         return;
       }
@@ -108,11 +124,11 @@ export default function AdminAuth({ onLoginSuccess }) {
           </div>
         )}
 
-        {/* Form without credentials text */}
+        {/* Authentication and recovery form */}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">એડમિન યુઝરનેમ (Username)</label>
-            <input 
+            <input
               type="text"
               required
               autoFocus
@@ -123,17 +139,45 @@ export default function AdminAuth({ onLoginSuccess }) {
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="form-label">પાસવર્ડ (Password)</label>
-            <input 
-              type="password"
-              required
-              placeholder="પાસવર્ડ દાખલ કરો"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
-            />
-          </div>
+          {mode === 'login' ? (
+            <div className="form-group" style={{ marginBottom: '24px' }}>
+              <label className="form-label">પાસવર્ડ (Password)</label>
+              <input
+                type="password"
+                required
+                placeholder="પાસવર્ડ દાખલ કરો"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="form-input"
+              />
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">રિકવરી ટોકન</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Render Environment માંથી ટોકન"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">નવો પાસવર્ડ</label>
+                <input
+                  type="password"
+                  required
+                  minLength="8"
+                  placeholder="ઓછામાં ઓછા ૮ અક્ષર"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+            </>
+          )}
 
           <button 
             type="submit" 
@@ -141,9 +185,30 @@ export default function AdminAuth({ onLoginSuccess }) {
             disabled={loading}
             style={{ width: '100%', padding: '13px', fontSize: '0.98rem', fontWeight: 700 }}
           >
-            {loading ? 'ચકાસણી ચાલુ છે...' : 'સુરક્ષિત પ્રવેશ કરો'}
+            {loading ? 'ચકાસણી ચાલુ છે...' : mode === 'login' ? 'સુરક્ષિત પ્રવેશ કરો' : 'પાસવર્ડ બદલો'}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode(mode === 'login' ? 'reset' : 'login');
+            setError('');
+          }}
+          style={{
+            display: 'block',
+            width: '100%',
+            marginTop: '14px',
+            padding: '8px',
+            background: 'transparent',
+            border: 'none',
+            color: '#38bdf8',
+            cursor: 'pointer',
+            fontSize: '0.82rem'
+          }}
+        >
+          {mode === 'login' ? 'પાસવર્ડ ભૂલી ગયા છો?' : 'લોગીન પર પાછા જાઓ'}
+        </button>
 
         <div style={{
           marginTop: '24px',

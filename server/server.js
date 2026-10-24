@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -105,6 +106,38 @@ app.post('/api/auth/login', (req, res) => {
       businessName: user.businessName || 'બારોટ મોબિલિટી'
     }
   });
+});
+
+// One-time administrative recovery endpoint. Remove ADMIN_PASSWORD_RESET_TOKEN
+// from the deployment environment immediately after using it.
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { username, resetToken, newPassword } = req.body;
+  const configuredResetToken = process.env.ADMIN_PASSWORD_RESET_TOKEN;
+
+  if (!configuredResetToken || configuredResetToken.length < 32) {
+    return res.status(404).json({ error: 'પાસવર્ડ રિકવરી હાલમાં ઉપલબ્ધ નથી' });
+  }
+  if (!username || !resetToken || !newPassword || newPassword.length < 8) {
+    return res.status(400).json({ error: 'યુઝરનેમ, રિકવરી ટોકન અને ઓછામાં ઓછો ૮ અક્ષરનો નવો પાસવર્ડ જરૂરી છે' });
+  }
+
+  const suppliedToken = Buffer.from(String(resetToken));
+  const expectedToken = Buffer.from(configuredResetToken);
+  const tokenMatches = suppliedToken.length === expectedToken.length
+    && crypto.timingSafeEqual(suppliedToken, expectedToken);
+  if (!tokenMatches) {
+    return res.status(401).json({ error: 'રિકવરી ટોકન ખોટો છે' });
+  }
+
+  const users = readData('users');
+  const index = users.findIndex(u => u.username.toLowerCase() === username.trim().toLowerCase());
+  if (index === -1) {
+    return res.status(401).json({ error: 'રિકવરી વિગતો ખોટી છે' });
+  }
+
+  users[index].passwordHash = bcrypt.hashSync(newPassword, 10);
+  writeData('users', users);
+  res.json({ message: 'પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો છે' });
 });
 
 // Admin Profile: Get details
