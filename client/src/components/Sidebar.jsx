@@ -7,13 +7,13 @@ import {
   Users, 
   Banknote, 
   Wallet, 
-  UserCircle,
-  HelpCircle,
-  LogOut,
-  MapPin,
-  ShieldCheck,
-  Menu,
-  X
+  UserCircle, 
+  HelpCircle, 
+  LogOut, 
+  MapPin, 
+  ShieldCheck, 
+  Menu, 
+  X 
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
@@ -38,26 +38,17 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
 
   return (
     <>
-      {/* Mobile Top Header Bar (Only visible on Mobile/Tablet) */}
-      <header className="mobile-header" style={{
-        display: 'none',
-        width: '100%',
-        padding: '12px 16px',
-        background: 'rgba(7, 12, 24, 0.98)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1500
-      }}>
+      {/* Mobile Top Header Bar (Only visible on screens <= 900px) */}
+      {!mobileOpen && (<header className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/logo.svg" alt="Barot Mobility" style={{ width: '32px', height: '32px' }} />
+          <img src="/logo.svg" alt="Barot Mobility" style={{ width: '34px', height: '34px' }} />
           <div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', color: '#fff' }}>
+            <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#fff', lineHeight: 1.1 }}>
               BAROT <span style={{ color: '#fbbf24' }}>MOBILITY</span>
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#10b981' }}>કલોલ, ગાંધીનગર</div>
+            <div style={{ fontSize: '0.68rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <MapPin size={10} /> કલોલ, ગાંધીનગર
+            </div>
           </div>
         </div>
 
@@ -65,18 +56,19 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
           onClick={() => setMobileOpen(!mobileOpen)}
           style={{
             background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             color: '#fff',
-            padding: '8px',
-            borderRadius: '8px',
+            padding: '8px 10px',
+            borderRadius: '10px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            transition: 'all 0.2s'
           }}
           aria-label="Toggle Navigation Menu"
         >
-          {mobileOpen ? <X size={20} color="#fbbf24" /> : <Menu size={20} color="#fff" />}
+          {mobileOpen ? <X size={22} color="#fbbf24" /> : <Menu size={22} color="#fff" />}
         </button>
       </header>
 
@@ -84,42 +76,15 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
       {mobileOpen && (
         <div 
           onClick={() => setMobileOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 1400
-          }}
+          className="mobile-backdrop"
         />
       )}
 
-      {/* Main Sidebar Navigation */}
-      <aside 
-        className={`app-sidebar ${mobileOpen ? 'mobile-open' : ''}`}
-        style={{
-          width: '280px',
-          minWidth: '280px',
-          height: '100vh',
-          position: 'sticky',
-          top: 0,
-          background: 'rgba(7, 12, 24, 0.97)',
-          backdropFilter: 'blur(16px)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1450,
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
-        {/* Brand Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
+      {/* Main Sidebar Navigation Drawer */}
+      <aside className={`app-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+        
+        {/* Desktop Brand Header (Hidden on Mobile to prevent double logo/name) */}
+        <div className="desktop-brand-header">
           <div style={{
             width: '44px',
             height: '44px',
@@ -152,8 +117,30 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <div style={{ padding: '14px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+        {/* Mobile Sidebar Close Button Header (Shown only when Drawer is Open on Mobile) */}
+        <div className="mobile-drawer-header">
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            મેનુ નેવિગેશન
+          </span>
+          <button 
+            onClick={() => setMobileOpen(false)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: 'none',
+              color: '#cbd5e1',
+              padding: '6px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Navigation Menu Links */}
+        <div style={{ padding: '12px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
           
           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', padding: '6px 12px' }}>
             ફ્લીટ મેનેજમેન્ટ
@@ -171,13 +158,13 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '11px 14px',
                   borderRadius: '10px',
                   border: 'none',
                   background: isActive ? 'linear-gradient(90deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05))' : 'transparent',
                   color: isActive ? '#fbbf24' : '#94a3b8',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   borderLeft: isActive ? '3px solid #f59e0b' : '3px solid transparent',
@@ -202,7 +189,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
             );
           })}
 
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', padding: '12px 12px 4px' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', padding: '14px 12px 4px' }}>
             અંગત &amp; સેટિંગ્સ
           </div>
 
@@ -219,13 +206,13 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '11px 14px',
                   borderRadius: '10px',
                   border: 'none',
                   background: isActive ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.05))' : 'rgba(16, 185, 129, 0.08)',
                   color: isActive ? '#34d399' : '#a7f3d0',
                   fontWeight: isActive ? 700 : 600,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   borderLeft: isActive ? '3px solid #10b981' : '3px solid rgba(16, 185, 129, 0.4)',
@@ -261,13 +248,13 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '11px 14px',
                   borderRadius: '10px',
                   border: 'none',
                   background: isActive ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
                   color: isActive ? '#38bdf8' : '#94a3b8',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   borderLeft: isActive ? '3px solid #38bdf8' : '3px solid transparent',
@@ -293,13 +280,13 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '11px 14px',
                   borderRadius: '10px',
                   border: 'none',
                   background: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                   color: isActive ? '#fff' : '#94a3b8',
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   textAlign: 'left',
                   borderLeft: isActive ? '3px solid #fff' : '3px solid transparent',
@@ -315,9 +302,9 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
 
         {/* Admin Profile Footer & Logout */}
         <div style={{
-          padding: '16px',
+          padding: '14px 16px',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(5, 8, 17, 0.85)'
+          background: 'rgba(5, 8, 17, 0.95)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div 
@@ -355,7 +342,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                 background: 'rgba(244, 63, 94, 0.15)',
                 border: '1px solid rgba(244, 63, 94, 0.3)',
                 color: '#fda4af',
-                padding: '7px',
+                padding: '7px 9px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 display: 'flex',
@@ -370,10 +357,72 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
       </aside>
 
       <style>{`
+        .mobile-header {
+          display: none;
+        }
+        .desktop-brand-header {
+          padding: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .mobile-drawer-header {
+          display: none;
+        }
+
+        .app-sidebar {
+          width: 280px;
+          min-width: 280px;
+          height: 100vh;
+          position: sticky;
+          top: 0;
+          background: rgba(7, 12, 24, 0.98);
+          backdrop-filter: blur(16px);
+          border-right: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex;
+          flex-direction: column;
+          z-index: 1450;
+        }
+
         @media (max-width: 900px) {
           .mobile-header {
             display: flex !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(7, 12, 24, 0.98);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1500;
           }
+          
+          /* Hide desktop brand logo from sidebar in mobile so it doesn't double */
+          .desktop-brand-header {
+            display: none !important;
+          }
+
+          /* Show clean title & close button inside mobile drawer */
+          .mobile-drawer-header {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          }
+
+          .mobile-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1400;
+          }
+
           .app-sidebar {
             position: fixed !important;
             top: 0 !important;
@@ -381,8 +430,11 @@ export default function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
             bottom: 0 !important;
             height: 100vh !important;
             transform: translateX(-100%);
-            box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+            transition: transform 0.28s ease-in-out;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.85);
+            z-index: 1600 !important;
           }
+
           .app-sidebar.mobile-open {
             transform: translateX(0) !important;
           }
