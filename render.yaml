@@ -3,7 +3,7 @@ services:
     name: barot-mobility
     runtime: node
     plan: free
-    buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
+    buildCommand: ./build.sh
     startCommand: node server/server.js
     envVars:
       - key: NODE_ENV
