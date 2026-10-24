@@ -220,8 +220,8 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflowX: 'hidden' }}>
-      {/* Sidebar with Professional Layout */}
+    <div className="app-container" style={{ display: 'flex', minHeight: '100vh', width: '100vw', maxWidth: '100vw', overflowX: 'hidden' }}>
+      {/* Sidebar with Mobile Responsive Toggle */}
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -230,11 +230,11 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, padding: '32px 40px', overflowY: 'auto', maxHeight: '100vh' }}>
+      <main className="app-main" style={{ flex: 1, padding: '28px 36px', overflowY: 'auto', maxHeight: '100vh', width: '100%', maxWidth: '100vw' }}>
         {loading && entries.length === 0 && cars.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#94a3b8' }}>
             <div style={{ textAlign: 'center' }}>
-              <div className="pulse" style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fbbf24' }}>
+              <div className="pulse" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fbbf24' }}>
                 બારોટ મોબિલિટી લોડ થઈ રહ્યું છે...
               </div>
               <p style={{ marginTop: '8px', fontSize: '0.85rem' }}>કલોલ ફ્લીટ ડેટાબેઝ સિંક થઈ રહ્યો છે</p>

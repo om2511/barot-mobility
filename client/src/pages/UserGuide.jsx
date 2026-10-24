@@ -86,7 +86,7 @@ export default function UserGuide({ setActiveTab }) {
           <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>કલોલ, ગાંધીનગર</span>
         </div>
         <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginTop: '8px' }}>
-          હર્ષ ટેક્સી મેનેજર સોફ્ટવેર કેવી રીતે વાપરવું?
+          સોફ્ટવેર કેવી રીતે વાપરવું?
         </h2>
         <p style={{ color: '#cbd5e1', fontSize: '0.92rem', marginTop: '6px', maxWidth: '750px', lineHeight: 1.6 }}>
           આ સોફ્ટવેર ખાસ હર્ષ ભાઈ બારોટ માટે સરળ ગુજરાતી ભાષામાં બનાવવામાં આવ્યું છે. નીચે આપેલા સરળ પગલાં પ્રમાણે તમે ટેક્સી બિઝનેસ અને ઘરનો તમામ હિસાબ સચોટ રીતે રાખી શકો છો.
