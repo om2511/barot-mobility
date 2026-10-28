@@ -159,48 +159,49 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 app.post('/api/auth/forgot-password', (req, res) => {
-  const { username } = req.body;
-  const users = readData('users');
-  const index = users.findIndex(u => normalizeUsername(u.username) === normalizeUsername(username));
-  if (!mailTransport || !process.env.ADMIN_EMAIL) {
-    return res.status(503).json({ error: 'ઈમેલ રિકવરી સર્વર પર ગોઠવેલી નથી' });
+  const { username, securityAnswer, newPassword, confirmPassword } = req.body;
+  const configuredQuestion = process.env.ADMIN_SECURITY_QUESTION || 'What is the name of your business?';
+  const configuredAnswer = (process.env.ADMIN_SECURITY_ANSWER || '').trim().toLowerCase();
+
+  if (!username || !securityAnswer || !newPassword || !confirmPassword) {
+    return res.status(400).json({ error: 'યુઝરનેમ, સુરક્ષા જવાબ અને નવો પાસવર્ડ જરૂરી છે' });
   }
-  if (index === -1) return res.json({ message: 'જો એકાઉન્ટ મળ્યું હશે તો OTP ઈમેલ કરવામાં આવ્યો છે.' });
 
-  const code = String(crypto.randomInt(100000, 1000000));
-  passwordResetRequests.set(users[index].id, {
-    codeHash: crypto.createHash('sha256').update(code).digest('hex'),
-    expiresAt: Date.now() + 10 * 60 * 1000,
-    attempts: 0
-  });
-  mailTransport.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: process.env.ADMIN_EMAIL,
-    subject: 'Barot Mobility password reset code',
-    text: `Your Barot Mobility password reset code is ${code}. It expires in 10 minutes.`
-  }).catch(error => console.error('Password reset email failed:', error));
-  res.json({ message: 'જો એકાઉન્ટ મળ્યું હશે તો OTP ઈમેલ કરવામાં આવ્યો છે.' });
-});
+  if (!configuredAnswer) {
+    return res.status(503).json({
+      error: 'સર્વરમાં ADMIN_SECURITY_ANSWER set નથી. પાસવર્ડ ફરીથી સેટ કરવા માટે ENV પર સુરક્ષા જવાબ ઉમેરો.'
+    });
+  }
 
-app.post('/api/auth/forgot-password/verify', (req, res) => {
-  const { username, otp, newPassword, confirmPassword } = req.body;
   const users = readData('users');
   const user = users.find(item => normalizeUsername(item.username) === normalizeUsername(username));
-  const request = user && passwordResetRequests.get(user.id);
-  if (!request || Date.now() > request.expiresAt || request.attempts >= 5) {
-    return res.status(400).json({ error: 'OTP ખોટો છે અથવા તેની સમયમર્યાદા પૂરી થઈ ગઈ છે' });
+
+  if (!user) {
+    return res.status(404).json({ error: 'આ યુઝરનેમ માટે એકાઉન્ટ મળ્યું નથી' });
   }
-  request.attempts += 1;
-  if (!otp || crypto.createHash('sha256').update(String(otp)).digest('hex') !== request.codeHash) {
-    return res.status(401).json({ error: 'OTP ખોટો છે' });
+
+  if (String(securityAnswer).trim().toLowerCase() !== configuredAnswer) {
+    return res.status(401).json({ error: 'સુરક્ષા જવાબ ખોટો છે' });
   }
+
   if (!validPassword(newPassword) || newPassword !== confirmPassword) {
-    return res.status(400).json({ error: 'સરખા ઓછામાં ઓછા ૮ અક્ષરના નવા પાસવર્ડ જરૂરી છે' });
+    return res.status(400).json({ error: 'નવો પાસવર્ડ ઓછામાં ઓછા ૮ અક્ષરનો હોવો જોઈએ અને કન્ફર્મ સાથે સરખો હોવો જોઈએ' });
   }
+
   user.passwordHash = bcrypt.hashSync(newPassword, 10);
   writeData('users', users);
   passwordResetRequests.delete(user.id);
-  res.json({ message: 'પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો છે' });
+
+  res.json({
+    message: 'પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો છે. હવે તમે નવા પાસવર્ડથી લોગીન કરી શકો છો.',
+    securityQuestion: configuredQuestion
+  });
+});
+
+app.post('/api/auth/forgot-password/verify', (req, res) => {
+  return res.status(410).json({
+    error: 'આ મેથડ હવે સપોર્ટ નથી. કૃપા કરીને સુરક્ષા જવાબ અને નવા પાસવર્ડ સાથે ફક્ત /api/auth/forgot-password વાપરો.'
+  });
 });
 
 // Admin Profile: Get details

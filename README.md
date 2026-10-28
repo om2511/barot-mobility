@@ -108,6 +108,8 @@ NODE_ENV=production
 JWT_SECRET=replace-with-a-long-random-secret
 ADMIN_INITIAL_PASSWORD=replace-with-a-strong-initial-password
 ADMIN_EMAIL=your-admin-email@example.com
+ADMIN_SECURITY_QUESTION=What is the name of your business?
+ADMIN_SECURITY_ANSWER=barot mobility
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -119,7 +121,7 @@ CLIENT_ORIGIN=https://your-frontend.example.com
 
 `JWT_SECRET` must contain at least 32 characters. `ADMIN_INITIAL_PASSWORD` is optional: if omitted while no users exist, the first administrator can register from the login screen. The `.env` file is ignored by Git. Do not commit credentials, SMTP passwords, JWT secrets, or files containing private business data. Protect and back up `server/data` in production, and restrict access to the deployed application to authorized administrators.
 
-`ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASSWORD` enable email OTP password recovery. Use an SMTP app password, not your normal email password. OTPs expire after 10 minutes, are limited to five attempts, and are stored only as hashes in server memory. The server loads `.env` during local startup. After changing a password from the profile, the existing session remains valid and the new password is immediately used by the next login.
+The password-reset flow uses a security question instead of a token or OTP. Set `ADMIN_SECURITY_QUESTION` and `ADMIN_SECURITY_ANSWER` in the server environment, then use the reset form to answer the question and set a new password. The app still keeps SMTP variables available for optional mail features, but the current recovery flow does not require an email reset token. After changing a password from the profile, the existing session remains valid and the new password is immediately used by the next login.
 
 ## API overview
 
@@ -143,6 +145,6 @@ The resource endpoints support the CRUD operations exposed by the UI.
 - The server creates missing JSON data files in `server/data` at startup. When no users exist, it creates the `harsh` administrator from `ADMIN_INITIAL_PASSWORD`.
 - `server/data` is private runtime data and is excluded from source control. Existing deployments must use persistent storage if business data must survive redeploys; on a new empty deployment, set `ADMIN_INITIAL_PASSWORD` before the first start.
 - `render.yaml` describes a Node web service deployment and generates `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD`. If the Render service was created manually, add or rotate these variables in the service's Environment settings because an existing service may not automatically import later Blueprint changes.
-- To recover access, configure SMTP and `ADMIN_EMAIL`, open `પાસવર્ડ ભૂલી ગયા છો?`, request an OTP, and enter the emailed OTP with the new password.
+- To recover access without a token or email OTP, set `ADMIN_SECURITY_QUESTION` and `ADMIN_SECURITY_ANSWER` in the server environment, then answer the question on the reset form and set a new password.
 - First-admin registration is available only while `server/data/users.json` is empty. Once the first administrator exists, the registration endpoint is closed.
 - `docker-compose.yml` binds port `5000` to localhost only and requires `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD` from the deployment environment. Put the service behind an HTTPS reverse proxy before remote access.

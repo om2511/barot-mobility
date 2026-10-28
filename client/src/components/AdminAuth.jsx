@@ -7,8 +7,7 @@ export default function AdminAuth({ onLoginSuccess }) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [resetToken, setResetToken] = useState('');
-  const [resetRequested, setResetRequested] = useState(false);
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,19 +21,17 @@ export default function AdminAuth({ onLoginSuccess }) {
     try {
       const isReset = mode === 'reset';
       const isRegister = mode === 'register';
-      const endpoint = isReset
-        ? resetRequested ? '/api/auth/forgot-password/verify' : '/api/auth/forgot-password'
-        : isRegister ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = isReset ? '/api/auth/forgot-password' : isRegister ? '/api/auth/register' : '/api/auth/login';
+      const payload = isReset
+        ? { username, securityAnswer, newPassword, confirmPassword }
+        : isRegister
+          ? { username, fullName, phone, password, confirmPassword }
+          : { username, password };
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isReset
-          ? resetRequested
-            ? { username, otp: resetToken, newPassword, confirmPassword }
-            : { username }
-          : isRegister
-            ? { username, fullName, phone, password, confirmPassword }
-            : { username, password })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
 
@@ -45,25 +42,19 @@ export default function AdminAuth({ onLoginSuccess }) {
       }
 
       if (isReset) {
-        if (!resetRequested) {
-          setResetRequested(true);
-          setError(data.message || 'તમારા ઈમેલ પર OTP મોકલવામાં આવ્યો છે.');
-          setLoading(false);
-          return;
-        }
         setMode('login');
         setPassword('');
+        setSecurityAnswer('');
         setNewPassword('');
-        setResetToken('');
         setConfirmPassword('');
-        setError('પાસવર્ડ બદલાઈ ગયો છે. હવે નવા પાસવર્ડથી લોગીન કરો.');
+        setError(data.message || 'પાસવર્ડ બદલાઈ ગયો છે. હવે નવા પાસવર્ડથી લોગીન કરો.');
         setLoading(false);
         return;
       }
+
       if (isRegister) {
         setMode('login');
         setPassword('');
-        setResetRequested(false);
         setError('રજીસ્ટ્રેશન સફળ થયું છે. હવે લોગીન કરો.');
         setLoading(false);
         return;
@@ -202,17 +193,17 @@ export default function AdminAuth({ onLoginSuccess }) {
           ) : (
             <>
               <div className="form-group">
-                <label className="form-label">ઈમેલ OTP</label>
+                <label className="form-label">સુરક્ષા જવાબ</label>
                 <input
-                  type="password"
+                  type="text"
                   required
-                  placeholder="ઈમેલમાં આવેલો ૬ અંકનો OTP"
-                  value={resetToken}
-                  onChange={(e) => setResetToken(e.target.value)}
+                  placeholder="તમારો સુરક્ષા જવાબ લખો"
+                  value={securityAnswer}
+                  onChange={(e) => setSecurityAnswer(e.target.value)}
                   className="form-input"
                 />
               </div>
-              {resetRequested && <div className="form-group" style={{ marginBottom: '24px' }}>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
                 <label className="form-label">નવો પાસવર્ડ</label>
                 <input
                   type="password"
@@ -223,11 +214,11 @@ export default function AdminAuth({ onLoginSuccess }) {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="form-input"
                 />
-              </div>}
-              {resetRequested && <div className="form-group" style={{ marginBottom: '24px' }}>
-                  <label className="form-label">નવો પાસવર્ડ ફરીથી લખો</label>
-                  <input type="password" required minLength="8" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="form-input" />
-              </div>}
+              </div>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">નવો પાસવર્ડ ફરીથી લખો</label>
+                <input type="password" required minLength="8" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="form-input" />
+              </div>
             </>
           )}
 
@@ -245,7 +236,9 @@ export default function AdminAuth({ onLoginSuccess }) {
           type="button"
           onClick={() => {
             setMode(mode === 'login' ? 'reset' : 'login');
-            setResetRequested(false);
+            setSecurityAnswer('');
+            setNewPassword('');
+            setConfirmPassword('');
             setError('');
           }}
           style={{
