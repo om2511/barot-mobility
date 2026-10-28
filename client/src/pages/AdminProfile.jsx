@@ -10,7 +10,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
-export default function AdminProfile({ user, onProfileUpdated, token }) {
+export default function AdminProfile({ user, onProfileUpdated, onAccountDeleted, token }) {
   const [fullName, setFullName] = useState(user?.fullName || 'હર્ષ બારોટ');
   const [phone, setPhone] = useState(user?.phone || '9825000000');
   const [city, setCity] = useState(user?.city || 'કલોલ, ગાંધીનગર');
@@ -18,6 +18,8 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
   
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -41,6 +43,40 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
         city,
         businessName,
         ...(newPassword ? { currentPassword, newPassword } : {})
+      };
+
+      const handleDeleteAccount = async () => {
+        if (!deletePassword) {
+          setError('એકાઉન્ટ ડિલીટ કરવા માટે હાલનો પાસવર્ડ લખો');
+          return;
+        }
+        if (!window.confirm('આ એકાઉન્ટ અને તમામ કાર, ડ્રાઇવર, એન્ટ્રી, પગાર અને ફાઇનાન્સ ડેટા કાયમ માટે ડિલીટ થશે. શું તમે આગળ વધવા માંગો છો?')) {
+          return;
+        }
+
+        setError('');
+        setMessage('');
+        setDeleteLoading(true);
+        try {
+          const res = await fetch('/api/auth/account', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ currentPassword: deletePassword })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setError(data.error || 'એકાઉન્ટ ડિલીટ કરવામાં ભૂલ થઈ');
+            return;
+          }
+          onAccountDeleted();
+        } catch (err) {
+          setError('સર્વર સાથે સંપર્ક થઈ શક્યો નથી.');
+        } finally {
+          setDeleteLoading(false);
+        }
       };
 
       const res = await fetch('/api/auth/profile', {
@@ -174,6 +210,35 @@ export default function AdminProfile({ user, onProfileUpdated, token }) {
                 onChange={(e) => setFullName(e.target.value)}
                 className="form-input"
               />
+            </div>
+
+            <div className="glass-panel" style={{ padding: '28px', border: '1px solid rgba(244, 63, 94, 0.35)' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fda4af', marginBottom: '10px' }}>
+                એકાઉન્ટ ડિલીટ કરો
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#fda4af', marginBottom: '16px' }}>
+                આ ક્રિયા કાયમી છે. તમારું એકાઉન્ટ અને તમામ એપ્લિકેશન ડેટા કાયમ માટે ડિલીટ થશે.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div className="form-group" style={{ flex: '1 1 260px', marginBottom: 0 }}>
+                  <label className="form-label">હાલનો પાસવર્ડ</label>
+                  <input
+                    type="password"
+                    placeholder="ડિલીટની પુષ્ટિ કરવા પાસવર્ડ"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  style={{ padding: '12px 20px', background: '#be123c', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {deleteLoading ? 'ડિલીટ થઈ રહ્યું છે...' : 'એકાઉન્ટ અને ડેટા ડિલીટ કરો'}
+                </button>
+              </div>
             </div>
 
             <div className="form-group">

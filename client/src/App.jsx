@@ -316,7 +316,8 @@ export default function App() {
               <AdminProfile 
                 user={user} 
                 token={token} 
-                onProfileUpdated={handleProfileUpdated} 
+                onProfileUpdated={handleProfileUpdated}
+                onAccountDeleted={handleLogout}
               />
             )}
 

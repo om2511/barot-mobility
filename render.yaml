@@ -14,7 +14,19 @@ services:
         generateValue: true
       - key: ADMIN_INITIAL_PASSWORD
         generateValue: true
-      - key: ADMIN_PASSWORD_RESET_TOKEN
-        generateValue: true
+      - key: ADMIN_EMAIL
+        value: barotharsh729@gmail.com
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
       - key: CLIENT_ORIGIN
         value: https://barot-mobility.onrender.com

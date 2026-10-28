@@ -12,6 +12,7 @@ Barot Mobility is a private fleet, driver payroll, daily transaction, and person
 - **Driver salaries:** Create salary vouchers, record advances and bonuses, mark payments as paid, and track payment details.
 - **Harsh's personal finance:** Track income and expenses separately from fleet transactions. Entry types and details can be entered as custom text, with cash or Online payment methods.
 - **Admin profile:** Update the administrator's profile and password.
+- **First-admin registration:** If no administrator exists, create the first administrator directly from the login screen. Registration closes automatically afterward.
 - **User guide:** Gujarati in-app guidance for the main workflows.
 
 All application data is stored as JSON files under `server/data`. The application currently uses Express and file-based persistence; MongoDB is not required for local development.
@@ -106,11 +107,19 @@ PORT=5000
 NODE_ENV=production
 JWT_SECRET=replace-with-a-long-random-secret
 ADMIN_INITIAL_PASSWORD=replace-with-a-strong-initial-password
-ADMIN_PASSWORD_RESET_TOKEN=replace-with-a-random-recovery-token-at-least-32-characters-long
+ADMIN_EMAIL=your-admin-email@example.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-account@example.com
+SMTP_PASSWORD=your-smtp-app-password
+SMTP_FROM=your-smtp-account@example.com
 CLIENT_ORIGIN=https://your-frontend.example.com
 ```
 
-`JWT_SECRET` must contain at least 32 characters. `ADMIN_INITIAL_PASSWORD` is required only when the server creates the first administrator and must contain at least 8 characters. `ADMIN_PASSWORD_RESET_TOKEN` enables the login screen's password recovery flow and must contain at least 32 characters. Remove or rotate that token immediately after resetting the password. The `.env` file is ignored by Git. Do not commit credentials, JWT secrets, or files containing private business data. Protect and back up `server/data` in production, and restrict access to the deployed application to authorized administrators.
+`JWT_SECRET` must contain at least 32 characters. `ADMIN_INITIAL_PASSWORD` is optional: if omitted while no users exist, the first administrator can register from the login screen. The `.env` file is ignored by Git. Do not commit credentials, SMTP passwords, JWT secrets, or files containing private business data. Protect and back up `server/data` in production, and restrict access to the deployed application to authorized administrators.
+
+`ADMIN_EMAIL`, `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASSWORD` enable email OTP password recovery. Use an SMTP app password, not your normal email password. OTPs expire after 10 minutes, are limited to five attempts, and are stored only as hashes in server memory. The server loads `.env` during local startup. After changing a password from the profile, the existing session remains valid and the new password is immediately used by the next login.
 
 ## API overview
 
@@ -134,5 +143,6 @@ The resource endpoints support the CRUD operations exposed by the UI.
 - The server creates missing JSON data files in `server/data` at startup. When no users exist, it creates the `harsh` administrator from `ADMIN_INITIAL_PASSWORD`.
 - `server/data` is private runtime data and is excluded from source control. Existing deployments must use persistent storage if business data must survive redeploys; on a new empty deployment, set `ADMIN_INITIAL_PASSWORD` before the first start.
 - `render.yaml` describes a Node web service deployment and generates `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD`. If the Render service was created manually, add or rotate these variables in the service's Environment settings because an existing service may not automatically import later Blueprint changes.
-- To recover access without Render Shell, add `ADMIN_PASSWORD_RESET_TOKEN` in Render Environment, open `પાસવર્ડ ભૂલી ગયા છો?` on the login screen, reset the password, then remove or rotate the token and redeploy.
+- To recover access, configure SMTP and `ADMIN_EMAIL`, open `પાસવર્ડ ભૂલી ગયા છો?`, request an OTP, and enter the emailed OTP with the new password.
+- First-admin registration is available only while `server/data/users.json` is empty. Once the first administrator exists, the registration endpoint is closed.
 - `docker-compose.yml` binds port `5000` to localhost only and requires `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD` from the deployment environment. Put the service behind an HTTPS reverse proxy before remote access.

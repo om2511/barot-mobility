@@ -10,5 +10,12 @@ services:
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in the deployment environment}
       - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD for a new data directory}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL for password recovery}
+      - SMTP_HOST=${SMTP_HOST:?Set SMTP_HOST for password recovery}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:?Set SMTP_USER for password recovery}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:?Set SMTP_PASSWORD for password recovery}
+      - SMTP_FROM=${SMTP_FROM:-${SMTP_USER}}
     volumes:
       - ./server/data:/app/server/data

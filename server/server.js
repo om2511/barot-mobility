@@ -1,9 +1,11 @@
 const path = require('path');
 const crypto = require('crypto');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 const { readData, writeData } = require('./db');
 
 const app = express();
@@ -26,8 +28,9 @@ function ensureAdmin() {
   let users = readData('users');
   if (users.length === 0) {
     const initialPassword = process.env.ADMIN_INITIAL_PASSWORD;
-    if (!initialPassword || initialPassword.length < 8) {
-      throw new Error('ADMIN_INITIAL_PASSWORD must be configured with at least 8 characters when creating the first admin');
+    if (!initialPassword) return;
+    if (initialPassword.length < 8) {
+      throw new Error('ADMIN_INITIAL_PASSWORD must contain at least 8 characters');
     }
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(initialPassword, salt);
@@ -50,6 +53,24 @@ function ensureAdmin() {
 }
 ensureAdmin();
 
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function validPassword(value) {
+  return typeof value === 'string' && value.length >= 8;
+}
+
+const passwordResetRequests = new Map();
+const mailTransport = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD
+  ? nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
+  })
+  : null;
+
 // Authentication Middleware
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -68,6 +89,35 @@ function authMiddleware(req, res, next) {
 
 // =================== AUTH APIS ===================
 
+app.post('/api/auth/register', (req, res) => {
+  const { username, fullName, phone, password, confirmPassword } = req.body;
+  const users = readData('users');
+  if (users.length > 0) {
+    return res.status(409).json({ error: 'પ્રથમ એડમિન પહેલેથી જ નોંધાયેલ છે. નવું એકાઉન્ટ સર્વર એડમિન દ્વારા ઉમેરવું પડશે.' });
+  }
+  if (!username || !fullName || !validPassword(password) || password !== confirmPassword) {
+    return res.status(400).json({ error: 'નામ, યુઝરનેમ અને સરખા ઓછામાં ઓછા ૮ અક્ષરના પાસવર્ડ જરૂરી છે' });
+  }
+  const normalizedUsername = normalizeUsername(username);
+  if (users.some(user => normalizeUsername(user.username) === normalizedUsername)) {
+    return res.status(409).json({ error: 'આ યુઝરનેમ પહેલેથી જ ઉપયોગમાં છે' });
+  }
+
+  users.push({
+    id: `admin-${Date.now()}`,
+    username: String(username).trim(),
+    fullName: String(fullName).trim(),
+    phone: String(phone || '').trim(),
+    passwordHash: bcrypt.hashSync(password, 10),
+    role: 'admin',
+    city: 'કલોલ, ગાંધીનગર',
+    businessName: 'બારોટ મોબિલિટી (Barot Mobility)',
+    createdAt: new Date().toISOString()
+  });
+  writeData('users', users);
+  res.status(201).json({ message: 'રજીસ્ટ્રેશન સફળ થયું છે. હવે લોગીન કરો.' });
+});
+
 // Admin Login Only (Strict)
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
@@ -76,7 +126,7 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const users = readData('users');
-  const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+  const user = users.find(u => normalizeUsername(u.username) === normalizeUsername(username));
 
   if (!user) {
     return res.status(401).json({ error: 'અમાન્ય યુઝરનેમ અથવા પાસવર્ડ' });
@@ -108,35 +158,48 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-// One-time administrative recovery endpoint. Remove ADMIN_PASSWORD_RESET_TOKEN
-// from the deployment environment immediately after using it.
 app.post('/api/auth/forgot-password', (req, res) => {
-  const { username, resetToken, newPassword } = req.body;
-  const configuredResetToken = process.env.ADMIN_PASSWORD_RESET_TOKEN;
-
-  if (!configuredResetToken || configuredResetToken.length < 32) {
-    return res.status(404).json({ error: 'પાસવર્ડ રિકવરી હાલમાં ઉપલબ્ધ નથી' });
-  }
-  if (!username || !resetToken || !newPassword || newPassword.length < 8) {
-    return res.status(400).json({ error: 'યુઝરનેમ, રિકવરી ટોકન અને ઓછામાં ઓછો ૮ અક્ષરનો નવો પાસવર્ડ જરૂરી છે' });
-  }
-
-  const suppliedToken = Buffer.from(String(resetToken));
-  const expectedToken = Buffer.from(configuredResetToken);
-  const tokenMatches = suppliedToken.length === expectedToken.length
-    && crypto.timingSafeEqual(suppliedToken, expectedToken);
-  if (!tokenMatches) {
-    return res.status(401).json({ error: 'રિકવરી ટોકન ખોટો છે' });
-  }
-
+  const { username } = req.body;
   const users = readData('users');
-  const index = users.findIndex(u => u.username.toLowerCase() === username.trim().toLowerCase());
-  if (index === -1) {
-    return res.status(401).json({ error: 'રિકવરી વિગતો ખોટી છે' });
+  const index = users.findIndex(u => normalizeUsername(u.username) === normalizeUsername(username));
+  if (!mailTransport || !process.env.ADMIN_EMAIL) {
+    return res.status(503).json({ error: 'ઈમેલ રિકવરી સર્વર પર ગોઠવેલી નથી' });
   }
+  if (index === -1) return res.json({ message: 'જો એકાઉન્ટ મળ્યું હશે તો OTP ઈમેલ કરવામાં આવ્યો છે.' });
 
-  users[index].passwordHash = bcrypt.hashSync(newPassword, 10);
+  const code = String(crypto.randomInt(100000, 1000000));
+  passwordResetRequests.set(users[index].id, {
+    codeHash: crypto.createHash('sha256').update(code).digest('hex'),
+    expiresAt: Date.now() + 10 * 60 * 1000,
+    attempts: 0
+  });
+  mailTransport.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: process.env.ADMIN_EMAIL,
+    subject: 'Barot Mobility password reset code',
+    text: `Your Barot Mobility password reset code is ${code}. It expires in 10 minutes.`
+  }).catch(error => console.error('Password reset email failed:', error));
+  res.json({ message: 'જો એકાઉન્ટ મળ્યું હશે તો OTP ઈમેલ કરવામાં આવ્યો છે.' });
+});
+
+app.post('/api/auth/forgot-password/verify', (req, res) => {
+  const { username, otp, newPassword, confirmPassword } = req.body;
+  const users = readData('users');
+  const user = users.find(item => normalizeUsername(item.username) === normalizeUsername(username));
+  const request = user && passwordResetRequests.get(user.id);
+  if (!request || Date.now() > request.expiresAt || request.attempts >= 5) {
+    return res.status(400).json({ error: 'OTP ખોટો છે અથવા તેની સમયમર્યાદા પૂરી થઈ ગઈ છે' });
+  }
+  request.attempts += 1;
+  if (!otp || crypto.createHash('sha256').update(String(otp)).digest('hex') !== request.codeHash) {
+    return res.status(401).json({ error: 'OTP ખોટો છે' });
+  }
+  if (!validPassword(newPassword) || newPassword !== confirmPassword) {
+    return res.status(400).json({ error: 'સરખા ઓછામાં ઓછા ૮ અક્ષરના નવા પાસવર્ડ જરૂરી છે' });
+  }
+  user.passwordHash = bcrypt.hashSync(newPassword, 10);
   writeData('users', users);
+  passwordResetRequests.delete(user.id);
   res.json({ message: 'પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો છે' });
 });
 
@@ -173,7 +236,7 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
     if (!isCurrentValid) {
       return res.status(400).json({ error: 'હાલનો જૂનો પાસવર્ડ ખોટો છે' });
     }
-    if (newPassword.length < 8) {
+    if (!validPassword(newPassword)) {
       return res.status(400).json({ error: 'નવો પાસવર્ડ ઓછામાં ઓછો ૮ અક્ષરનો હોવો જોઈએ' });
     }
     const salt = bcrypt.genSaltSync(10);
@@ -199,6 +262,21 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
       businessName: users[index].businessName
     }
   });
+});
+
+app.delete('/api/auth/account', authMiddleware, (req, res) => {
+  const { currentPassword } = req.body;
+  const users = readData('users');
+  const user = users.find(item => item.id === req.user.id);
+  if (!user) return res.status(404).json({ error: 'યુઝર મળ્યો નથી' });
+  if (!currentPassword || !bcrypt.compareSync(currentPassword, user.passwordHash)) {
+    return res.status(401).json({ error: 'હાલનો પાસવર્ડ ખોટો છે' });
+  }
+
+  ['users', 'cars', 'drivers', 'carEntries', 'driverSalaries', 'personalFinance']
+    .forEach(key => writeData(key, []));
+  passwordResetRequests.delete(user.id);
+  res.json({ message: 'એકાઉન્ટ અને તમામ એપ્લિકેશન ડેટા ડિલીટ થઈ ગયો છે' });
 });
 
 // =================== CARS API (CRUD) ===================

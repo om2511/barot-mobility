@@ -4,9 +4,13 @@ import { Lock, MapPin, ShieldCheck, AlertCircle } from 'lucide-react';
 export default function AdminAuth({ onLoginSuccess }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [resetRequested, setResetRequested] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,27 +21,50 @@ export default function AdminAuth({ onLoginSuccess }) {
 
     try {
       const isReset = mode === 'reset';
-      const res = await fetch(isReset ? '/api/auth/forgot-password' : '/api/auth/login', {
+      const isRegister = mode === 'register';
+      const endpoint = isReset
+        ? resetRequested ? '/api/auth/forgot-password/verify' : '/api/auth/forgot-password'
+        : isRegister ? '/api/auth/register' : '/api/auth/login';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isReset
-          ? { username, resetToken, newPassword }
-          : { username, password })
+          ? resetRequested
+            ? { username, otp: resetToken, newPassword, confirmPassword }
+            : { username }
+          : isRegister
+            ? { username, fullName, phone, password, confirmPassword }
+            : { username, password })
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || (isReset ? 'પાસવર્ડ રીસેટ થઈ શક્યો નથી' : 'ખોટો યુઝરનેમ અથવા પાસવર્ડ'));
+        setError(data.error || (isReset ? 'પાસવર્ડ રીસેટ થઈ શક્યો નથી' : isRegister ? 'રજીસ્ટ્રેશન થઈ શક્યું નથી' : 'ખોટો યુઝરનેમ અથવા પાસવર્ડ'));
         setLoading(false);
         return;
       }
 
       if (isReset) {
+        if (!resetRequested) {
+          setResetRequested(true);
+          setError(data.message || 'તમારા ઈમેલ પર OTP મોકલવામાં આવ્યો છે.');
+          setLoading(false);
+          return;
+        }
         setMode('login');
         setPassword('');
         setNewPassword('');
         setResetToken('');
+        setConfirmPassword('');
         setError('પાસવર્ડ બદલાઈ ગયો છે. હવે નવા પાસવર્ડથી લોગીન કરો.');
+        setLoading(false);
+        return;
+      }
+      if (isRegister) {
+        setMode('login');
+        setPassword('');
+        setResetRequested(false);
+        setError('રજીસ્ટ્રેશન સફળ થયું છે. હવે લોગીન કરો.');
         setLoading(false);
         return;
       }
@@ -139,32 +166,53 @@ export default function AdminAuth({ onLoginSuccess }) {
             />
           </div>
 
-          {mode === 'login' ? (
-            <div className="form-group" style={{ marginBottom: '24px' }}>
-              <label className="form-label">પાસવર્ડ (Password)</label>
-              <input
-                type="password"
-                required
-                placeholder="પાસવર્ડ દાખલ કરો"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-input"
-              />
-            </div>
-          ) : (
+          {mode === 'register' && (
             <>
               <div className="form-group">
-                <label className="form-label">રિકવરી ટોકન</label>
+                <label className="form-label">પૂરું નામ</label>
+                <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">મોબાઈલ નંબર</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="form-input" />
+              </div>
+            </>
+          )}
+
+          {mode === 'login' || mode === 'register' ? (
+            <>
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label className="form-label">પાસવર્ડ (Password)</label>
                 <input
                   type="password"
                   required
-                  placeholder="Render Environment માંથી ટોકન"
+                  placeholder="પાસવર્ડ દાખલ કરો"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              {mode === 'register' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label className="form-label">પાસવર્ડ ફરીથી લખો</label>
+                  <input type="password" required minLength="8" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="form-input" />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">ઈમેલ OTP</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="ઈમેલમાં આવેલો ૬ અંકનો OTP"
                   value={resetToken}
                   onChange={(e) => setResetToken(e.target.value)}
                   className="form-input"
                 />
               </div>
-              <div className="form-group" style={{ marginBottom: '24px' }}>
+              {resetRequested && <div className="form-group" style={{ marginBottom: '24px' }}>
                 <label className="form-label">નવો પાસવર્ડ</label>
                 <input
                   type="password"
@@ -175,7 +223,11 @@ export default function AdminAuth({ onLoginSuccess }) {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="form-input"
                 />
-              </div>
+              </div>}
+              {resetRequested && <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label className="form-label">નવો પાસવર્ડ ફરીથી લખો</label>
+                  <input type="password" required minLength="8" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="form-input" />
+              </div>}
             </>
           )}
 
@@ -185,7 +237,7 @@ export default function AdminAuth({ onLoginSuccess }) {
             disabled={loading}
             style={{ width: '100%', padding: '13px', fontSize: '0.98rem', fontWeight: 700 }}
           >
-            {loading ? 'ચકાસણી ચાલુ છે...' : mode === 'login' ? 'સુરક્ષિત પ્રવેશ કરો' : 'પાસવર્ડ બદલો'}
+            {loading ? 'ચકાસણી ચાલુ છે...' : mode === 'login' ? 'સુરક્ષિત પ્રવેશ કરો' : mode === 'register' ? 'રજીસ્ટર કરો' : 'પાસવર્ડ બદલો'}
           </button>
         </form>
 
@@ -193,6 +245,7 @@ export default function AdminAuth({ onLoginSuccess }) {
           type="button"
           onClick={() => {
             setMode(mode === 'login' ? 'reset' : 'login');
+            setResetRequested(false);
             setError('');
           }}
           style={{
@@ -209,6 +262,12 @@ export default function AdminAuth({ onLoginSuccess }) {
         >
           {mode === 'login' ? 'પાસવર્ડ ભૂલી ગયા છો?' : 'લોગીન પર પાછા જાઓ'}
         </button>
+
+        {mode === 'login' && (
+          <button type="button" onClick={() => { setMode('register'); setError(''); }} style={{ display: 'block', width: '100%', marginTop: '4px', padding: '8px', background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '0.82rem' }}>
+            નવું એડમિન રજીસ્ટર કરો
+          </button>
+        )}
 
         <div style={{
           marginTop: '24px',
