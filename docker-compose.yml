@@ -9,7 +9,9 @@ services:
       - PORT=5000
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in the deployment environment}
-      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD for a new data directory}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD for the first administrator}
+      - MONGODB_URI=${MONGODB_URI:?Set MONGODB_URI for MongoDB}
+      - MONGODB_COLLECTION=${MONGODB_COLLECTION:-barot_mobility_data}
       - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL for password recovery}
       - SMTP_HOST=${SMTP_HOST:?Set SMTP_HOST for password recovery}
       - SMTP_PORT=${SMTP_PORT:-587}
@@ -17,5 +19,3 @@ services:
       - SMTP_USER=${SMTP_USER:?Set SMTP_USER for password recovery}
       - SMTP_PASSWORD=${SMTP_PASSWORD:?Set SMTP_PASSWORD for password recovery}
       - SMTP_FROM=${SMTP_FROM:-${SMTP_USER}}
-    volumes:
-      - ./server/data:/app/server/data

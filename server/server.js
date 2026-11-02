@@ -6,7 +6,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
-const { readData, writeData } = require('./db');
+const { readData, writeData, initializeDatabase, closeDatabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,8 +24,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Helper to get or init single Harsh Barot Admin
-function ensureAdmin() {
-  let users = readData('users');
+async function ensureAdmin() {
+  let users = await readData('users');
   if (users.length === 0) {
     const initialPassword = process.env.ADMIN_INITIAL_PASSWORD;
     if (!initialPassword) return;
@@ -46,12 +46,11 @@ function ensureAdmin() {
       createdAt: new Date().toISOString()
     };
     users = [defaultAdmin];
-    writeData('users', users);
+    await writeData('users', users);
   } else if (!users.every(user => typeof user.passwordHash === 'string' && /^\$2[aby]\$\d{2}\$/.test(user.passwordHash))) {
     throw new Error('An existing administrator has an invalid password hash; reset it through a controlled migration before starting the server');
   }
 }
-ensureAdmin();
 
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase();
@@ -89,9 +88,9 @@ function authMiddleware(req, res, next) {
 
 // =================== AUTH APIS ===================
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const { username, fullName, phone, password, confirmPassword } = req.body;
-  const users = readData('users');
+  const users = await readData('users');
   if (users.length > 0) {
     return res.status(409).json({ error: 'પ્રથમ એડમિન પહેલેથી જ નોંધાયેલ છે. નવું એકાઉન્ટ સર્વર એડમિન દ્વારા ઉમેરવું પડશે.' });
   }
@@ -114,18 +113,18 @@ app.post('/api/auth/register', (req, res) => {
     businessName: 'બારોટ મોબિલિટી (Barot Mobility)',
     createdAt: new Date().toISOString()
   });
-  writeData('users', users);
+  await writeData('users', users);
   res.status(201).json({ message: 'રજીસ્ટ્રેશન સફળ થયું છે. હવે લોગીન કરો.' });
 });
 
 // Admin Login Only (Strict)
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'યુઝરનેમ અને પાસવર્ડ દાખલ કરો' });
   }
 
-  const users = readData('users');
+  const users = await readData('users');
   const user = users.find(u => normalizeUsername(u.username) === normalizeUsername(username));
 
   if (!user) {
@@ -158,7 +157,7 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   const { username, securityAnswer, newPassword, confirmPassword } = req.body;
   const configuredQuestion = process.env.ADMIN_SECURITY_QUESTION || 'What is the name of your business?';
   const configuredAnswer = (process.env.ADMIN_SECURITY_ANSWER || '').trim().toLowerCase();
@@ -173,7 +172,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
     });
   }
 
-  const users = readData('users');
+  const users = await readData('users');
   const user = users.find(item => normalizeUsername(item.username) === normalizeUsername(username));
 
   if (!user) {
@@ -189,7 +188,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
   }
 
   user.passwordHash = bcrypt.hashSync(newPassword, 10);
-  writeData('users', users);
+  await writeData('users', users);
   passwordResetRequests.delete(user.id);
 
   res.json({
@@ -198,15 +197,15 @@ app.post('/api/auth/forgot-password', (req, res) => {
   });
 });
 
-app.post('/api/auth/forgot-password/verify', (req, res) => {
+app.post('/api/auth/forgot-password/verify', async (req, res) => {
   return res.status(410).json({
     error: 'આ મેથડ હવે સપોર્ટ નથી. કૃપા કરીને સુરક્ષા જવાબ અને નવા પાસવર્ડ સાથે ફક્ત /api/auth/forgot-password વાપરો.'
   });
 });
 
 // Admin Profile: Get details
-app.get('/api/auth/profile', authMiddleware, (req, res) => {
-  const users = readData('users');
+app.get('/api/auth/profile', authMiddleware, async (req, res) => {
+  const users = await readData('users');
   const user = users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'યુઝર મળ્યો નથી' });
   res.json({
@@ -221,8 +220,8 @@ app.get('/api/auth/profile', authMiddleware, (req, res) => {
 });
 
 // Admin Profile: Update Name, Phone, City, Password
-app.put('/api/auth/profile', authMiddleware, (req, res) => {
-  const users = readData('users');
+app.put('/api/auth/profile', authMiddleware, async (req, res) => {
+  const users = await readData('users');
   const index = users.findIndex(u => u.id === req.user.id);
   if (index === -1) return res.status(404).json({ error: 'યુઝર મળ્યો નથી' });
 
@@ -249,7 +248,7 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
   if (city) users[index].city = city.trim();
   if (businessName) users[index].businessName = businessName.trim();
 
-  writeData('users', users);
+  await writeData('users', users);
 
   res.json({
     message: 'પ્રોફાઇલ સફળતાપૂર્વક અપડેટ થઈ ગઈ છે',
@@ -265,29 +264,31 @@ app.put('/api/auth/profile', authMiddleware, (req, res) => {
   });
 });
 
-app.delete('/api/auth/account', authMiddleware, (req, res) => {
+app.delete('/api/auth/account', authMiddleware, async (req, res) => {
   const { currentPassword } = req.body;
-  const users = readData('users');
+  const users = await readData('users');
   const user = users.find(item => item.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'યુઝર મળ્યો નથી' });
   if (!currentPassword || !bcrypt.compareSync(currentPassword, user.passwordHash)) {
     return res.status(401).json({ error: 'હાલનો પાસવર્ડ ખોટો છે' });
   }
 
-  ['users', 'cars', 'drivers', 'carEntries', 'driverSalaries', 'personalFinance']
-    .forEach(key => writeData(key, []));
+  await Promise.all(
+    ['users', 'cars', 'drivers', 'carEntries', 'driverSalaries', 'personalFinance']
+      .map(key => writeData(key, []))
+  );
   passwordResetRequests.delete(user.id);
   res.json({ message: 'એકાઉન્ટ અને તમામ એપ્લિકેશન ડેટા ડિલીટ થઈ ગયો છે' });
 });
 
 // =================== CARS API (CRUD) ===================
-app.get('/api/cars', authMiddleware, (req, res) => {
-  const cars = readData('cars');
+app.get('/api/cars', authMiddleware, async (req, res) => {
+  const cars = await readData('cars');
   res.json(cars);
 });
 
-app.post('/api/cars', authMiddleware, (req, res) => {
-  const cars = readData('cars');
+app.post('/api/cars', authMiddleware, async (req, res) => {
+  const cars = await readData('cars');
   const newCar = {
     id: 'car-' + Date.now(),
     carNumber: req.body.carNumber ? req.body.carNumber.toUpperCase().trim() : '',
@@ -299,36 +300,36 @@ app.post('/api/cars', authMiddleware, (req, res) => {
     assignedDate: req.body.assignedDate || new Date().toISOString().split('T')[0]
   };
   cars.unshift(newCar);
-  writeData('cars', cars);
+  await writeData('cars', cars);
   res.status(201).json(newCar);
 });
 
-app.put('/api/cars/:id', authMiddleware, (req, res) => {
-  const cars = readData('cars');
+app.put('/api/cars/:id', authMiddleware, async (req, res) => {
+  const cars = await readData('cars');
   const index = cars.findIndex(c => c.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'ગાડી મળી નથી' });
   
   cars[index] = { ...cars[index], ...req.body };
   if (req.body.carNumber) cars[index].carNumber = req.body.carNumber.toUpperCase().trim();
-  writeData('cars', cars);
+  await writeData('cars', cars);
   res.json(cars[index]);
 });
 
-app.delete('/api/cars/:id', authMiddleware, (req, res) => {
-  let cars = readData('cars');
+app.delete('/api/cars/:id', authMiddleware, async (req, res) => {
+  let cars = await readData('cars');
   cars = cars.filter(c => c.id !== req.params.id);
-  writeData('cars', cars);
+  await writeData('cars', cars);
   res.json({ success: true, message: 'ગાડી ડિલીટ થઈ ગઈ' });
 });
 
 // =================== DRIVERS API (CRUD) ===================
-app.get('/api/drivers', authMiddleware, (req, res) => {
-  const drivers = readData('drivers');
+app.get('/api/drivers', authMiddleware, async (req, res) => {
+  const drivers = await readData('drivers');
   res.json(drivers);
 });
 
-app.post('/api/drivers', authMiddleware, (req, res) => {
-  const drivers = readData('drivers');
+app.post('/api/drivers', authMiddleware, async (req, res) => {
+  const drivers = await readData('drivers');
   const newDriver = {
     id: 'drv-' + Date.now(),
     name: req.body.name || '',
@@ -342,12 +343,12 @@ app.post('/api/drivers', authMiddleware, (req, res) => {
     status: req.body.status || 'હાજર (સક્રિય)'
   };
   drivers.unshift(newDriver);
-  writeData('drivers', drivers);
+  await writeData('drivers', drivers);
   res.status(201).json(newDriver);
 });
 
-app.put('/api/drivers/:id', authMiddleware, (req, res) => {
-  const drivers = readData('drivers');
+app.put('/api/drivers/:id', authMiddleware, async (req, res) => {
+  const drivers = await readData('drivers');
   const index = drivers.findIndex(d => d.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'ડ્રાઇવર મળ્યો નથી' });
   
@@ -356,20 +357,20 @@ app.put('/api/drivers/:id', authMiddleware, (req, res) => {
     ...req.body,
     monthlySalary: req.body.monthlySalary !== undefined ? Number(req.body.monthlySalary) : drivers[index].monthlySalary
   };
-  writeData('drivers', drivers);
+  await writeData('drivers', drivers);
   res.json(drivers[index]);
 });
 
-app.delete('/api/drivers/:id', authMiddleware, (req, res) => {
-  let drivers = readData('drivers');
+app.delete('/api/drivers/:id', authMiddleware, async (req, res) => {
+  let drivers = await readData('drivers');
   drivers = drivers.filter(d => d.id !== req.params.id);
-  writeData('drivers', drivers);
+  await writeData('drivers', drivers);
   res.json({ success: true, message: 'ડ્રાઇવર ડિલીટ થયો' });
 });
 
 // =================== CAR ENTRIES (CRUD: Create, Read, Update, Delete) ===================
-app.get('/api/car-entries', authMiddleware, (req, res) => {
-  let entries = readData('carEntries');
+app.get('/api/car-entries', authMiddleware, async (req, res) => {
+  let entries = await readData('carEntries');
   const { carNumber, type, month } = req.query;
 
   if (carNumber && carNumber !== 'ALL') {
@@ -386,8 +387,8 @@ app.get('/api/car-entries', authMiddleware, (req, res) => {
   res.json(entries);
 });
 
-app.post('/api/car-entries', authMiddleware, (req, res) => {
-  const entries = readData('carEntries');
+app.post('/api/car-entries', authMiddleware, async (req, res) => {
+  const entries = await readData('carEntries');
   const newEntry = {
     id: 'ce-' + Date.now(),
     date: req.body.date || new Date().toISOString().split('T')[0],
@@ -399,12 +400,12 @@ app.post('/api/car-entries', authMiddleware, (req, res) => {
     notes: req.body.notes || ''
   };
   entries.unshift(newEntry);
-  writeData('carEntries', entries);
+  await writeData('carEntries', entries);
   res.status(201).json(newEntry);
 });
 
-app.put('/api/car-entries/:id', authMiddleware, (req, res) => {
-  const entries = readData('carEntries');
+app.put('/api/car-entries/:id', authMiddleware, async (req, res) => {
+  const entries = await readData('carEntries');
   const index = entries.findIndex(e => e.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'એન્ટ્રી મળી નથી' });
 
@@ -414,20 +415,20 @@ app.put('/api/car-entries/:id', authMiddleware, (req, res) => {
     amount: req.body.amount !== undefined ? Number(req.body.amount) : entries[index].amount,
     carNumber: req.body.carNumber ? req.body.carNumber.toUpperCase().trim() : entries[index].carNumber
   };
-  writeData('carEntries', entries);
+  await writeData('carEntries', entries);
   res.json(entries[index]);
 });
 
-app.delete('/api/car-entries/:id', authMiddleware, (req, res) => {
-  let entries = readData('carEntries');
+app.delete('/api/car-entries/:id', authMiddleware, async (req, res) => {
+  let entries = await readData('carEntries');
   entries = entries.filter(e => e.id !== req.params.id);
-  writeData('carEntries', entries);
+  await writeData('carEntries', entries);
   res.json({ success: true, message: 'એન્ટ્રી ડિલીટ થઈ ગઈ' });
 });
 
 // =================== DRIVER SALARIES (CRUD) ===================
-app.get('/api/salaries', authMiddleware, (req, res) => {
-  let salaries = readData('driverSalaries');
+app.get('/api/salaries', authMiddleware, async (req, res) => {
+  let salaries = await readData('driverSalaries');
   const { driverId, month } = req.query;
   if (driverId && driverId !== 'ALL') {
     salaries = salaries.filter(s => s.driverId === driverId);
@@ -439,8 +440,8 @@ app.get('/api/salaries', authMiddleware, (req, res) => {
   res.json(salaries);
 });
 
-app.post('/api/salaries', authMiddleware, (req, res) => {
-  const salaries = readData('driverSalaries');
+app.post('/api/salaries', authMiddleware, async (req, res) => {
+  const salaries = await readData('driverSalaries');
   const baseSalary = Number(req.body.baseSalary) || 0;
   const advancePaid = Number(req.body.advancePaid) || 0;
   const bonus = Number(req.body.bonus) || 0;
@@ -461,12 +462,12 @@ app.post('/api/salaries', authMiddleware, (req, res) => {
     notes: req.body.notes || ''
   };
   salaries.unshift(newSalary);
-  writeData('driverSalaries', salaries);
+  await writeData('driverSalaries', salaries);
   res.status(201).json(newSalary);
 });
 
-app.put('/api/salaries/:id', authMiddleware, (req, res) => {
-  const salaries = readData('driverSalaries');
+app.put('/api/salaries/:id', authMiddleware, async (req, res) => {
+  const salaries = await readData('driverSalaries');
   const idx = salaries.findIndex(s => s.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'પગાર એન્ટ્રી મળી નથી' });
 
@@ -480,20 +481,20 @@ app.put('/api/salaries/:id', authMiddleware, (req, res) => {
   updated.netSalary = baseSalary + bonus - advancePaid;
 
   salaries[idx] = updated;
-  writeData('driverSalaries', salaries);
+  await writeData('driverSalaries', salaries);
   res.json(salaries[idx]);
 });
 
-app.delete('/api/salaries/:id', authMiddleware, (req, res) => {
-  let salaries = readData('driverSalaries');
+app.delete('/api/salaries/:id', authMiddleware, async (req, res) => {
+  let salaries = await readData('driverSalaries');
   salaries = salaries.filter(s => s.id !== req.params.id);
-  writeData('driverSalaries', salaries);
+  await writeData('driverSalaries', salaries);
   res.json({ success: true, message: 'પગાર એન્ટ્રી ડિલીટ થઈ ગઈ' });
 });
 
 // =================== PERSONAL FINANCE (CRUD) ===================
-app.get('/api/personal-finance', authMiddleware, (req, res) => {
-  let pf = readData('personalFinance');
+app.get('/api/personal-finance', authMiddleware, async (req, res) => {
+  let pf = await readData('personalFinance');
   const { type, month } = req.query;
   if (type && type !== 'ALL') {
     pf = pf.filter(p => p.type === type);
@@ -505,8 +506,8 @@ app.get('/api/personal-finance', authMiddleware, (req, res) => {
   res.json(pf);
 });
 
-app.post('/api/personal-finance', authMiddleware, (req, res) => {
-  const pf = readData('personalFinance');
+app.post('/api/personal-finance', authMiddleware, async (req, res) => {
+  const pf = await readData('personalFinance');
   const newPF = {
     id: 'pf-' + Date.now(),
     date: req.body.date || new Date().toISOString().split('T')[0],
@@ -517,12 +518,12 @@ app.post('/api/personal-finance', authMiddleware, (req, res) => {
     description: req.body.description || ''
   };
   pf.unshift(newPF);
-  writeData('personalFinance', pf);
+  await writeData('personalFinance', pf);
   res.status(201).json(newPF);
 });
 
-app.put('/api/personal-finance/:id', authMiddleware, (req, res) => {
-  const pf = readData('personalFinance');
+app.put('/api/personal-finance/:id', authMiddleware, async (req, res) => {
+  const pf = await readData('personalFinance');
   const idx = pf.findIndex(p => p.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'અંગત વ્યવહાર મળ્યો નથી' });
 
@@ -531,21 +532,21 @@ app.put('/api/personal-finance/:id', authMiddleware, (req, res) => {
     ...req.body,
     amount: req.body.amount !== undefined ? Number(req.body.amount) : pf[idx].amount
   };
-  writeData('personalFinance', pf);
+  await writeData('personalFinance', pf);
   res.json(pf[idx]);
 });
 
-app.delete('/api/personal-finance/:id', authMiddleware, (req, res) => {
-  let pf = readData('personalFinance');
+app.delete('/api/personal-finance/:id', authMiddleware, async (req, res) => {
+  let pf = await readData('personalFinance');
   pf = pf.filter(p => p.id !== req.params.id);
-  writeData('personalFinance', pf);
+  await writeData('personalFinance', pf);
   res.json({ success: true, message: 'અંગત હિસાબ ડિલીટ થયો' });
 });
 
 // =================== AGGREGATED METRICS & CAR REPORT ===================
-app.get('/api/analytics/car-monthly', authMiddleware, (req, res) => {
-  const entries = readData('carEntries');
-  const cars = readData('cars');
+app.get('/api/analytics/car-monthly', authMiddleware, async (req, res) => {
+  const entries = await readData('carEntries');
+  const cars = await readData('cars');
   const month = req.query.month || new Date().toISOString().slice(0, 7);
 
   const report = cars.map(car => {
@@ -580,12 +581,12 @@ app.get('/api/analytics/car-monthly', authMiddleware, (req, res) => {
   res.json({ month, report });
 });
 
-app.get('/api/analytics/business-summary', authMiddleware, (req, res) => {
-  const entries = readData('carEntries');
-  const salaries = readData('driverSalaries');
-  const pf = readData('personalFinance');
-  const cars = readData('cars');
-  const drivers = readData('drivers');
+app.get('/api/analytics/business-summary', authMiddleware, async (req, res) => {
+  const entries = await readData('carEntries');
+  const salaries = await readData('driverSalaries');
+  const pf = await readData('personalFinance');
+  const cars = await readData('cars');
+  const drivers = await readData('drivers');
 
   const now = new Date();
   const currentMonth = now.toISOString().slice(0, 7);
@@ -627,10 +628,20 @@ app.get('/api/analytics/business-summary', authMiddleware, (req, res) => {
 });
 
 // Fallback to React index.html for SPA routing
-app.use((req, res) => {
+app.use(async (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Barot Mobility Backend running on port ${PORT}`);
+async function startServer() {
+  await initializeDatabase();
+  await ensureAdmin();
+  app.listen(PORT, () => {
+    console.log(`Barot Mobility Backend running on port ${PORT}`);
+  });
+}
+
+startServer().catch(error => {
+  console.error(error.message);
+  closeDatabase().catch(() => {});
+  process.exitCode = 1;
 });

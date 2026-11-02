@@ -15,7 +15,7 @@ Barot Mobility is a private fleet, driver payroll, daily transaction, and person
 - **First-admin registration:** If no administrator exists, create the first administrator directly from the login screen. Registration closes automatically afterward.
 - **User guide:** Gujarati in-app guidance for the main workflows.
 
-All application data is stored as JSON files under `server/data`. The application currently uses Express and file-based persistence; MongoDB is not required for local development.
+All application data is stored in MongoDB. The application uses Express and a MongoDB-backed persistence layer so registered credentials and business records survive application restarts and Render redeploys.
 
 ## Technology
 
@@ -23,7 +23,7 @@ All application data is stored as JSON files under `server/data`. The applicatio
 - Node.js with Express
 - JWT authentication
 - bcryptjs password hashing
-- JSON file persistence
+- MongoDB persistence through Mongoose
 - Lucide React, Chart.js, and react-chartjs-2
 
 ## Project structure
@@ -33,9 +33,8 @@ client/          React/Vite frontend
   src/
     components/  Shared UI components
     pages/       Dashboard and application pages
-server/          Express API and JSON persistence
-  data/          Runtime application data (not committed)
-  db.js          File-based data access helpers
+server/          Express API and MongoDB persistence
+  db.js          MongoDB data access helpers
   server.js      API routes and authentication
 build.sh         Production client build script
 docker-compose.yml
@@ -119,7 +118,7 @@ SMTP_FROM=your-smtp-account@example.com
 CLIENT_ORIGIN=https://your-frontend.example.com
 ```
 
-`JWT_SECRET` must contain at least 32 characters. `ADMIN_INITIAL_PASSWORD` is optional: if omitted while no users exist, the first administrator can register from the login screen. The `.env` file is ignored by Git. Do not commit credentials, SMTP passwords, JWT secrets, or files containing private business data. Protect and back up `server/data` in production, and restrict access to the deployed application to authorized administrators.
+`JWT_SECRET` must contain at least 32 characters. `MONGODB_URI` is required and must point to a MongoDB database that the server can access. Copy the complete Atlas connection string, including the `mongodb+srv://` prefix. If the database username or password contains reserved URL characters such as `@`, `:`, `/`, `?`, `#`, or `&`, URL-encode them before placing the URI in `.env` (`@` becomes `%40`, `&` becomes `%26`). The `.env` file is ignored by Git. Do not commit database credentials, SMTP passwords, JWT secrets, or files containing private business data. Restrict MongoDB network access to the application and restrict access to the deployed application to authorized administrators.
 
 The password-reset flow uses a security question instead of a token or OTP. Set `ADMIN_SECURITY_QUESTION` and `ADMIN_SECURITY_ANSWER` in the server environment, then use the reset form to answer the question and set a new password. The app still keeps SMTP variables available for optional mail features, but the current recovery flow does not require an email reset token. After changing a password from the profile, the existing session remains valid and the new password is immediately used by the next login.
 
@@ -142,9 +141,9 @@ The resource endpoints support the CRUD operations exposed by the UI.
 
 ## Data and deployment notes
 
-- The server creates missing JSON data files in `server/data` at startup. When no users exist, it creates the `harsh` administrator from `ADMIN_INITIAL_PASSWORD`.
-- `server/data` is private runtime data and is excluded from source control. Existing deployments must use persistent storage if business data must survive redeploys; on a new empty deployment, set `ADMIN_INITIAL_PASSWORD` before the first start.
+- The server creates the MongoDB data documents at startup. When no users exist, it creates the `harsh` administrator from `ADMIN_INITIAL_PASSWORD` if that variable is set; otherwise, the first administrator can register from the login screen.
+- MongoDB is the source of truth. Render's local filesystem is no longer used for application data, so a restart or redeploy does not remove registered accounts.
 - `render.yaml` describes a Node web service deployment and generates `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD`. If the Render service was created manually, add or rotate these variables in the service's Environment settings because an existing service may not automatically import later Blueprint changes.
 - To recover access without a token or email OTP, set `ADMIN_SECURITY_QUESTION` and `ADMIN_SECURITY_ANSWER` in the server environment, then answer the question on the reset form and set a new password.
-- First-admin registration is available only while `server/data/users.json` is empty. Once the first administrator exists, the registration endpoint is closed.
+- First-admin registration is available only while the MongoDB `users` document is empty. Once the first administrator exists, the registration endpoint is closed.
 - `docker-compose.yml` binds port `5000` to localhost only and requires `JWT_SECRET` and `ADMIN_INITIAL_PASSWORD` from the deployment environment. Put the service behind an HTTPS reverse proxy before remote access.
